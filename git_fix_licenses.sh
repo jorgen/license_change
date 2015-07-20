@@ -6,6 +6,7 @@ REVISIONS=""
 REVISION_FROM=""
 REVISION_TO="HEAD"
 INITIAL_COMMIT="NO"
+RESET_FIRST_REVISION="NO"
 
 function print_usage {
   echo "Usage for $0"
@@ -17,6 +18,7 @@ function print_usage {
   echo "-r, --revision          git revision to rebase from"
   echo "-i, --initial           create initial commit"
   echo "-t, --to-revision       revison to rebase to"
+  echo "--reset                 reset to first revision"
   echo ""
 }
 
@@ -69,6 +71,10 @@ function process_arguments {
                 ;;
             -i|--initial)
                 INITIAL_COMMIT="YES"
+                shift
+                ;;
+            --reset)
+                RESET_FIRST_REVISION="YES"
                 shift
                 ;;
             -h|--help)
@@ -138,7 +144,9 @@ function initial_license_cleanup {
 function rebase_revisions {
     for revision in $REVISIONS; do
         git cherry-pick $revision || exit 1
-        apply_correct_licenses "-a --amend"
+        if [ -d $SRC_DIR ]; then
+            apply_correct_licenses "-a --amend"
+        fi
     done
 }
 
@@ -147,6 +155,8 @@ verify_arguments
 get_revisions
 if [[ "$INITIAL_COMMIT" == "YES" ]]; then
     initial_license_cleanup
+elif [[ "$RESET_FIRST_REVISION" == "YES" ]]; then
+    git reset --hard $REVISION_FROM
 fi
 rebase_revisions
 
