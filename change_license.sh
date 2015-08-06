@@ -115,7 +115,8 @@ function set_license_range {
 }
 
 function set_copyright_variables {
-    COPYRIGHT_SOURCE=$(IFS=$'\n' grep "Copyright (C)" $SRC_FILE)
+    local nlines=`expr $LICENSE_END - 1`
+    COPYRIGHT_SOURCE="$(IFS=$'\n' head -n $nlines $SRC_FILE|grep "Copyright (C)")"
     COPYRIGHT_LICENSE=$(IFS=$'\n' grep "Copyright (C)" $LICENSE_FILE)
 }
 
@@ -131,14 +132,16 @@ function prepend_new_header {
 
 function replace_copyright {
     copyright_line=$(line_of_patter "Copyright \(C\)" "$SRC_FILE")
-
     if [ $copyright_line -eq "0" ]; then
         echo "Failed to find copyright header in the new license. Something must have gone wrong with $SRC_FILE"
         exit 1
     fi
+    startof_lincense_line=$(sed -n "$copyright_line{p;q}" "$SRC_FILE" | sed "s/Copyright.*//")
     sed -i "$copyright_line"d "$SRC_FILE"
     IFS=$'\n'
+    local cpystr="Copyright"
     for copyright in $COPYRIGHT_SOURCE; do
+        copyright=$(echo "$copyright" | perl -pe "s/^.*?Copyright/$startof_lincense_line$cpystr/")
         sed -i "$copyright_line"i\\"$copyright" "$SRC_FILE"
         copyright_line=`expr $copyright_line + 1`
     done
